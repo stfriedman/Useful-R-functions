@@ -86,28 +86,44 @@ ggplot(ouwie_results, aes(aicc, group=model, col=model)) +
   theme_classic() +
   ggtitle("AICc") +
   theme(plot.title = element_text(hjust = 0.5, size = 20)) +
-  scale_color_manual(values = viridis(7, direction=-1))
+  scale_color_manual(values = viridis(7))
 
 
-# plots estimated theta, alpha, and sigma.sq for all OUwie runs, horizontal lines represent
+# plots estimated theta, alpha, and sigma.sq for all OUwie runs, dashed lines represent
 # parameter value simulated under
 reg_cols <- c("goldenrod1", "deepskyblue3")
+ouwie_results$model <- factor(ouwie_results$model, rev(mods))
+
 
 ouwie_results %>%
   mutate(theta = map(theta, ~ tibble(theta=.x, regime=as.character(unique(disc_trait))))) %>%
   unnest(theta, alpha, sigma.sq) %>%
   gather(key = "param", value="value", alpha, theta, sigma.sq) %>%
   filter(value > 0) %>% 
-
-ggplot(., aes(x=value, y=model, col=regime)) +
-  geom_point(alpha=0.6, cex=2.5) +
-  facet_wrap(~param, scales = "free_x") +
+  
+  ggplot(., aes(fill=regime)) +
+  geom_density(aes(value), col="grey30", alpha=0.6) +
+  facet_grid(model ~ param, switch="both", scales="free") +
   theme_classic() +
-  theme(panel.background = element_rect(fill = NA, color = "black")) +
-  geom_vline(data=data.frame(alpha, param="alpha"), aes(xintercept = alpha), col=reg_cols, lty=2) +
-  geom_vline(data=data.frame(sigma.sq, param="sigma.sq"), 
-             aes(xintercept = sigma.sq), col=reg_cols, lty=2) +
-  geom_vline(data=data.frame(theta, param="theta"), aes(xintercept = theta), col=reg_cols, lty=2) +
-  scale_color_manual(values = reg_cols)
-
-                       
+  theme(
+    panel.background = element_blank(),
+    panel.spacing.x = unit(1.5, "lines"),
+    panel.spacing.y = unit(0, "lines"),
+    strip.placement = "outside",
+    strip.background = element_blank(),
+    strip.text.x = element_text(size=12),
+    strip.text.y = element_text(angle = 180, size=10),
+    axis.text.y = element_blank(),
+    axis.title.y = element_blank(), 
+    axis.title.x = element_blank(),
+    axis.line.y = element_blank(),
+    axis.ticks.y = element_blank()
+    ) +
+  scale_fill_manual(values = reg_cols) +
+  geom_vline(data=tibble(alpha, col=reg_cols, param="alpha"), 
+             aes(xintercept = alpha, col=col), lty=2) +
+  geom_vline(data=tibble(sigma.sq, col=reg_cols, param="sigma.sq"), 
+             aes(xintercept = sigma.sq, col=col), lty=2) +
+  geom_vline(data=tibble(theta, col=reg_cols, param="theta"), 
+             aes(xintercept = theta, col=col), lty=2) +
+  scale_colour_identity()
